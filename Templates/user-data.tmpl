@@ -1,0 +1,29 @@
+#!/bin/bash -xev
+
+sudo -s -- <<FILES
+cat > /etc/chef/validation.pem << EOF
+${chef_env_validation_pem_key}
+EOF
+cat > "/etc/chef/first-boot.json" << EOF
+{
+   "run_list" :["${chef_run_list}"]
+}
+EOF
+cat > '/etc/chef/client.rb' << EOF
+chef_server_url  "https://chef.gd.bose.com/organizations/gdp"
+validation_client_name "gdp-validator"
+chef_license "accept"
+log_location   STDOUT
+node_name "${node_name}"
+file_cache_path "/var/chef/cache"
+file_backup_path "/var/chef/backup"
+EOF
+FILES
+
+sudo -s -- <<INSTALL
+curl -L https://omnitruck.chef.io/install.sh > /tmp/installchef
+chmod +x /tmp/installchef
+sh /tmp/installchef -v 16.1.0  || error_exit 'could not install chef'
+INSTALL
+
+sudo chef-client -j /etc/chef/first-boot.json --environment ${environment}

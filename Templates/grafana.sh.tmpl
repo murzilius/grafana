@@ -1,0 +1,35 @@
+#!/bin/bash
+sudo yum update -y >> /home/ec2-user/terraform.log
+echo "+++++++++++++++++++++++++++Installing Nginx+++++++++++++++++++++++++++" >> /home/ec2-user/terraform.log
+sudo amazon-linux-extras install nginx1 -y >> /home/ec2-user/terraform.log
+sudo systemctl enable nginx >> /home/ec2-user/terraform.log
+sudo service nginx start >> /home/ec2-user/terraform.log
+echo "+++++++++++++++++++++++++++Installing Mysql+++++++++++++++++++++++++++" >> /home/ec2-user/terraform.log
+sudo yum install mysql -y >> /home/ec2-user/terraform.log
+echo "+++++++++++++++++++++++++++Fill Mysql DB grafana+++++++++++++++++++++++++++" >> /home/ec2-user/terraform.log
+cat > /home/ec2-user/db.sql <<EOF
+${DB_TEMPLATE}
+EOF
+mysql -u root -p${DB_PW} -h ${DB_ENDPOINT} -D grafana < /home/ec2-user/db.sql -v >> /home/ec2-user/terraform.log
+sudo tee /etc/yum.repos.d/grafana.repo<<EOF
+[grafana]
+name=grafana
+baseurl=https://packages.grafana.com/oss/rpm
+repo_gpgcheck=1
+enabled=1
+gpgcheck=1
+gpgkey=https://packages.grafana.com/gpg.key
+sslverify=1
+sslcacert=/etc/pki/tls/certs/ca-bundle.crt
+EOF
+echo "+++++++++++++++++++++++++++Installing Grafana+++++++++++++++++++++++++++" >> /home/ec2-user/terraform.log
+less /etc/yum.repos.d/grafana.repo >> /home/ec2-user/terraform.log
+sudo yum repolist -y >> /home/ec2-user/terraform.log
+sudo yum install -y grafana >> /home/ec2-user/terraform.log
+sudo systemctl enable grafana-server >> /home/ec2-user/terraform.log
+sudo systemctl start grafana-server.service
+echo "+++++++++++++++++++++++++++Installing Grafana Plugins+++++++++++++++++++++++++++" >> /home/ec2-user/terraform.log
+sudo grafana-cli plugins install briangann-datatable-panel
+systemctl restart grafana-server
+echo "+++++++++++++++++++++++++++Installing Chef-client+++++++++++++++++++++++++++" >> /home/ec2-user/terraform.log
+
