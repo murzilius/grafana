@@ -1,1 +1,3 @@
 .terraform
+/Files/id_rsa
+/Files/chef-terraform.pem
